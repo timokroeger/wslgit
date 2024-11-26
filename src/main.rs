@@ -16,7 +16,7 @@ use regex::Regex as StrRegex;
 mod fork;
 mod wsl;
 
-const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 const BASH_EXECUTABLE: &str = "/bin/bash";
 
@@ -83,7 +83,7 @@ fn translate_path_to_unix(argument: String) -> String {
     if REL_WINPATH_RE.is_match(&argument) {
         let caps = REL_WINPATH_RE.captures(&argument).unwrap();
         let path_cap = caps.name("path").unwrap();
-        let path = std::str::from_utf8(&path_cap.as_bytes()).unwrap();
+        let path = std::str::from_utf8(path_cap.as_bytes()).unwrap();
 
         let double_dash_found = unsafe { DOUBLE_DASH_FOUND };
 
@@ -96,11 +96,11 @@ fn translate_path_to_unix(argument: String) -> String {
             let wsl_path = path.replace("\\", "/");
 
             let before = match caps.name("before") {
-                Some(s) => std::str::from_utf8(&s.as_bytes()).unwrap(),
+                Some(s) => std::str::from_utf8(s.as_bytes()).unwrap(),
                 None => "",
             };
             let after = match caps.name("after") {
-                Some(s) => std::str::from_utf8(&s.as_bytes()).unwrap(),
+                Some(s) => std::str::from_utf8(s.as_bytes()).unwrap(),
                 None => "",
             };
 
@@ -200,17 +200,14 @@ fn escape_characters(arg: String) -> String {
 }
 
 fn invalid_characters(ch: char) -> bool {
-    match ch {
-        ' ' | '(' | ')' | '|' => true,
-        _ => false,
-    }
+    matches!(ch, ' ' | '(' | ')' | '|')
 }
 
 fn quote_argument(arg: String) -> String {
     if arg.contains(invalid_characters) || arg.is_empty() {
-        return format!("\"{}\"", arg);
+        format!("\"{}\"", arg)
     } else {
-        return arg;
+        arg
     }
 }
 
@@ -219,7 +216,7 @@ fn format_argument(arg: String) -> String {
         unsafe {
             DOUBLE_DASH_FOUND = true;
         };
-        return arg;
+        arg
     } else {
         let mut arg = arg;
         if fork::needs_patching() {
@@ -238,8 +235,7 @@ fn git_command_needs_interactive_shell() -> bool {
     const CMDS: &[&str] = &["clone", "fetch", "pull", "push", "ls-remote"];
     env::args()
         .skip(1)
-        .position(|arg| CMDS.iter().position(|&tcmd| tcmd == arg).is_some())
-        .is_some()
+        .any(|arg| CMDS.iter().any(|&tcmd| tcmd == arg))
 }
 
 fn use_interactive_shell() -> bool {
@@ -298,8 +294,8 @@ fn get_working_directory(current_dir: PathBuf, args: &[String]) -> String {
         } else if arg == "-C" {
             // `-C` expects a second argument that is a path
             next_is_path = true;
-        } else if arg.starts_with("--work-tree=") {
-            work_tree = arg[12..].to_string();
+        } else if let Some(arg) = arg.strip_prefix("--work-tree=") {
+            work_tree = arg.to_string();
         } else if !arg.starts_with("-") {
             // First argument that doesn't start with '-' (or '--') is the git
             // command; clone, commit etc.
@@ -308,11 +304,11 @@ fn get_working_directory(current_dir: PathBuf, args: &[String]) -> String {
     }
 
     // Finally apply the path from any "--work-tree" argument on the current working dir
-    if work_tree.len() > 0 {
+    if !work_tree.is_empty() {
         working_dir.push(work_tree);
     }
 
-    return working_dir.to_str().unwrap().to_string();
+    working_dir.to_str().unwrap().to_string()
 }
 
 /// Try to find the WSL distribution name from the provided `path`.
@@ -324,16 +320,9 @@ fn get_working_directory(current_dir: PathBuf, args: &[String]) -> String {
 ///
 /// Returns the distribution name or None.
 fn get_wsl_dist_name(path: &str) -> Option<String> {
-    const UNC_SERVER_WSL: &str = "\\\\wsl$\\";
-    const UNC_SERVER_WSL_LOCALHOST: &str = "\\\\wsl.localhost\\";
-
-    let unc_path_without_server: Option<&str> = if path.starts_with(UNC_SERVER_WSL) {
-        Some(&path[UNC_SERVER_WSL.len()..])
-    } else if path.starts_with(UNC_SERVER_WSL_LOCALHOST) {
-        Some(&path[UNC_SERVER_WSL_LOCALHOST.len()..])
-    } else {
-        None
-    };
+    let unc_path_without_server = path
+        .strip_prefix("\\\\wsl$\\")
+        .or_else(|| path.strip_prefix("\\\\wsl.localhost\\"));
 
     let wsl_dist_name = match unc_path_without_server {
         Some(p) => {
@@ -341,17 +330,10 @@ fn get_wsl_dist_name(path: &str) -> Option<String> {
             let (dist_name, _) = p.split_once('\\').unwrap();
             Some(dist_name.to_string())
         }
-        None => {
-            if let Ok(default_dist) = env::var("WSLGIT_DEFAULT_DIST") {
-                Some(default_dist)
-            } else {
-                // Use wsl default dist
-                None
-            }
-        }
+        None => env::var("WSLGIT_DEFAULT_DIST").ok(),
     };
 
-    return wsl_dist_name;
+    wsl_dist_name
 }
 
 fn enable_logging() -> bool {
@@ -387,7 +369,7 @@ fn log(message: String) {
         .create(true)
         .open(logfile)
         .unwrap();
-    write!(&f, "{}\n", message).unwrap();
+    writeln!(&f, "{}", message).unwrap();
 }
 
 fn main() {
@@ -395,7 +377,7 @@ fn main() {
         log(format!(
             "wslgit version {}, current_dir {}",
             VERSION,
-            env::current_dir().unwrap().to_str().unwrap().to_string()
+            env::current_dir().unwrap().to_str().unwrap()
         ));
     }
 
@@ -424,7 +406,6 @@ fn main() {
                 log("no distribution found".to_owned());
             }
             if let Ok(windows_git) = env::var("WSLGIT_WINDOWS_GIT") {
-                let status;
                 let mut windows_git_proc_setup = Command::new(windows_git.clone());
 
                 windows_git_proc_setup.args(&args);
@@ -437,10 +418,9 @@ fn main() {
                     log_arguments(&args);
                 }
 
-                status = windows_git_proc_setup.status().expect(&format!(
-                    "Failed to execute command '{}' {:?}",
-                    &windows_git, args
-                ));
+                let status = windows_git_proc_setup.status().unwrap_or_else(|_| {
+                    panic!("Failed to execute command '{}' {:?}", &windows_git, args)
+                });
 
                 // forward any exit code
                 if let Some(exit_code) = status.code() {
@@ -476,27 +456,19 @@ fn main() {
     let status;
 
     // add git commands that must use translate_path_to_win
-    const TRANSLATED_CMDS: &[&str] = &["rev-parse", "remote", "init"];
-
     let translate_output = env::args()
         .skip(1)
-        .position(|arg| {
-            TRANSLATED_CMDS
-                .iter()
-                .position(|&tcmd| tcmd == arg)
-                .is_some()
-        })
-        .is_some();
+        .any(|arg| ["rev-parse", "remote", "init"].contains(&arg.as_str()));
 
     if translate_output {
         // run the subprocess and capture its output
         let git_proc = git_proc_setup
             .stdout(Stdio::piped())
             .spawn()
-            .expect(&format!("Failed to execute command '{}'", &git_cmd));
+            .unwrap_or_else(|_| panic!("Failed to execute command '{}'", &git_cmd));
         let output = git_proc
             .wait_with_output()
-            .expect(&format!("Failed to wait for git call '{}'", &git_cmd));
+            .unwrap_or_else(|_| panic!("Failed to wait for git call '{}'", &git_cmd));
         status = output.status;
         let output_bytes = output.stdout;
         let mut stdout = io::stdout();
@@ -509,7 +481,7 @@ fn main() {
         // the output of the subprocess is passed through unchanged
         status = git_proc_setup
             .status()
-            .expect(&format!("Failed to execute command '{}'", &git_cmd));
+            .unwrap_or_else(|_| panic!("Failed to execute command '{}'", &git_cmd));
     }
 
     // forward any exit code
@@ -538,15 +510,15 @@ mod tests {
 
         // disable using WSLGIT_USE_INTERACTIVE_SHELL set to 'false' or '0'
         env::set_var("WSLGIT_USE_INTERACTIVE_SHELL", "false");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLGIT_USE_INTERACTIVE_SHELL", "0");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
 
         // enable using WSLGIT_USE_INTERACTIVE_SHELL set to anything but 'false' and '0'
         env::set_var("WSLGIT_USE_INTERACTIVE_SHELL", "true");
-        assert_eq!(use_interactive_shell(), true);
+        assert!(use_interactive_shell());
         env::set_var("WSLGIT_USE_INTERACTIVE_SHELL", "1");
-        assert_eq!(use_interactive_shell(), true);
+        assert!(use_interactive_shell());
 
         env::remove_var("WSLGIT_USE_INTERACTIVE_SHELL");
 
@@ -556,25 +528,25 @@ mod tests {
 
         // BASH_ENV must also be in WSLENV
         env::set_var("WSLENV", "BASH_ENV");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "BASH_ENV/up");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "BASH_ENV:TMP");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "BASH_ENV/up:TMP");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "TMP:BASH_ENV");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "TMP:BASH_ENV/up");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "TMP:BASH_ENV:TMP");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
         env::set_var("WSLENV", "TMP:BASH_ENV/up:TMP");
-        assert_eq!(use_interactive_shell(), false);
+        assert!(!use_interactive_shell());
 
         // WSLGIT_USE_INTERACTIVE_SHELL overrides BASH_ENV
         env::set_var("WSLGIT_USE_INTERACTIVE_SHELL", "true");
-        assert_eq!(use_interactive_shell(), true);
+        assert!(use_interactive_shell());
         env::remove_var("WSLGIT_USE_INTERACTIVE_SHELL");
 
         env::set_var("WSLENV", "NOT_BASH_ENV/up");
@@ -744,7 +716,7 @@ mod tests {
         let prefix = std::str::from_utf8(&prefix_bytes).unwrap();
         if check_wslpath.is_err()
             || !check_wslpath.expect("bash output").status.success()
-            || prefix == ""
+            || prefix.is_empty()
         {
             // Skip test if `wslpath` is not available (e.g. in CI).
             // Either bash was not found, or running `wslpath` returned an error
@@ -839,13 +811,13 @@ mod tests {
             DOUBLE_DASH_FOUND = false;
         }
         assert_eq!(format_argument("--".to_string()), "--");
-        assert_eq!(unsafe { DOUBLE_DASH_FOUND }, true);
+        assert!(unsafe { DOUBLE_DASH_FOUND });
 
         unsafe {
             DOUBLE_DASH_FOUND = false;
         }
         assert_eq!(format_argument("-".to_string()), "-");
-        assert_eq!(unsafe { DOUBLE_DASH_FOUND }, false);
+        assert!(!unsafe { DOUBLE_DASH_FOUND });
 
         unsafe {
             DOUBLE_DASH_FOUND = false;
@@ -1064,33 +1036,30 @@ mod tests {
     fn wsl_dist_name() {
         env::remove_var("WSLGIT_DEFAULT_DIST");
         assert_eq!(
-            get_wsl_dist_name(&r"\\wsl$\dist-name\a\b\c".to_string()),
+            get_wsl_dist_name(r"\\wsl$\dist-name\a\b\c"),
             Some("dist-name".to_string())
         );
         assert_eq!(
-            get_wsl_dist_name(&r"\\wsl.localhost\dist-name\a\b\c".to_string()),
+            get_wsl_dist_name(r"\\wsl.localhost\dist-name\a\b\c"),
             Some("dist-name".to_string())
         );
-        assert_eq!(
-            get_wsl_dist_name(&r"\\server\dist-name\a\b\c".to_string()),
-            None
-        );
-        assert_eq!(get_wsl_dist_name(&r"C:\a\b\c".to_string()), None);
+        assert_eq!(get_wsl_dist_name(r"\\server\dist-name\a\b\c"), None);
+        assert_eq!(get_wsl_dist_name(r"C:\a\b\c"), None);
     }
 
     #[test]
     fn wsl_default_dist_name() {
         env::set_var("WSLGIT_DEFAULT_DIST", "some-dist");
         assert_eq!(
-            get_wsl_dist_name(&r"\\wsl$\dist-name\a\b\c".to_string()),
+            get_wsl_dist_name(r"\\wsl$\dist-name\a\b\c"),
             Some("dist-name".to_string())
         );
         assert_eq!(
-            get_wsl_dist_name(&r"\\server\dist-name\a\b\c".to_string()),
+            get_wsl_dist_name(r"\\server\dist-name\a\b\c"),
             Some("some-dist".to_string())
         );
         assert_eq!(
-            get_wsl_dist_name(&r"C:\a\b\c".to_string()),
+            get_wsl_dist_name(r"C:\a\b\c"),
             Some("some-dist".to_string())
         );
     }

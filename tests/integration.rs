@@ -246,7 +246,7 @@ mod integration {
     fn wslgit_environment_variable() {
         Command::new(cargo_bin!(env!("CARGO_PKG_NAME")))
             // Use pretty format to call 'env'
-            .args(&["log", "-1", "--pretty=format:$(env)"])
+            .args(["log", "-1", "--pretty=format:$(env)"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .env("WSLENV", "")
             .assert()
@@ -256,7 +256,7 @@ mod integration {
 
         Command::new(cargo_bin!(env!("CARGO_PKG_NAME")))
             // Use pretty format to call 'env'
-            .args(&["log", "-1", "--pretty=format:$(env)"])
+            .args(["log", "-1", "--pretty=format:$(env)"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .env("WSLENV", "hello")
             .assert()
@@ -269,7 +269,7 @@ mod integration {
     fn shell_environment_variable() {
         Command::new(cargo_bin!(env!("CARGO_PKG_NAME")))
             // Use pretty format to call 'printenv SHELL'
-            .args(&["log", "-1", "--pretty=format:$(printenv SHELL)"])
+            .args(["log", "-1", "--pretty=format:$(printenv SHELL)"])
             .assert()
             .success()
             .stdout(predicate::str::contains("/bin/bash"));
