@@ -1,6 +1,6 @@
 use std::env;
 
-use std::fs::OpenOptions;
+use std::fs::{self, OpenOptions};
 use std::io::{self, IsTerminal, Write};
 use std::os::windows::process::CommandExt;
 use std::path::{Path, PathBuf};
@@ -22,6 +22,20 @@ const BASH_EXECUTABLE: &str = "/bin/bash";
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 static mut DOUBLE_DASH_FOUND: bool = false;
+
+fn git_from_path() -> Option<PathBuf> {
+    let current_exe = env::current_exe().and_then(fs::canonicalize).ok()?;
+    for path in env::split_paths(&env::var("PATH").ok()?) {
+        let git_path = path.join("git.exe");
+        if git_path.exists() {
+            let git_path = git_path.canonicalize().ok()?;
+            if git_path != current_exe {
+                return Some(git_path);
+            }
+        }
+    }
+    None
+}
 
 fn translate_path_to_unix(argument: String) -> String {
     let argument = argument.as_bytes();
@@ -369,6 +383,18 @@ fn log(message: String) {
 }
 
 fn main() {
+    let curr_dir = env::current_dir().unwrap();
+    // Assumes that the first element in args is the executable
+    let args: Vec<String> = env::args().skip(1).collect();
+    let working_directory = get_working_directory(curr_dir, &args);
+
+    // Use windows git when not working on a repo inside WSL.
+    if !working_directory.starts_with("\\\\wsl") {
+        let git_path = git_from_path().expect("git.exe not found in PATH");
+        let status = Command::new(git_path).args(args).status().unwrap();
+        std::process::exit(status.code().unwrap_or(0));
+    }
+
     if enable_logging() {
         log(format!(
             "wslgit version {}, current_dir {}",
