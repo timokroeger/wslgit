@@ -22,8 +22,8 @@ pub fn share_val(key: &str, value: &str, translate_path: bool) {
                     .expect("Failed to compile regex");
 
             if original_wslenv.is_empty() {
-                format!("{}", wslenv_key)
-            } else if re.is_match(original_wslenv.as_str()) == false {
+                wslenv_key.to_string()
+            } else if !re.is_match(original_wslenv.as_str()) {
                 format!("{}:{}", original_wslenv, wslenv_key)
             } else {
                 // Don't add anything to WSLENV
@@ -32,7 +32,7 @@ pub fn share_val(key: &str, value: &str, translate_path: bool) {
         }
         Err(_e) => {
             // No WSLENV
-            format!("{}", wslenv_key)
+            wslenv_key.to_string()
         }
     };
 

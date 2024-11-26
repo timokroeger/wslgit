@@ -6,9 +6,7 @@ use crate::wsl;
 
 /// Returns `true` if the process was invoked by `Fork.exe`.
 pub fn needs_patching() -> bool {
-    env::vars()
-        .position(|var| "FORK_PROCESS_ID" == var.0)
-        .is_some()
+    env::vars().any(|var| "FORK_PROCESS_ID" == var.0)
 }
 
 /// Patches the argument for Fork's interactive-rebase GUI.
@@ -50,7 +48,7 @@ pub fn patch_argument(arg: String) -> String {
                 .replace_all(arg.as_str(), new_editor.as_str())
                 .into_owned();
         }
-        None => return arg,
+        None => arg,
     }
 }
 
@@ -61,10 +59,10 @@ mod tests {
     #[test]
     fn invoked_by_fork() {
         env::set_var("FORK_PROCESS_ID", "5");
-        assert_eq!(true, needs_patching());
+        assert!(needs_patching());
 
         env::remove_var("FORK_PROCESS_ID");
-        assert_eq!(false, needs_patching());
+        assert!(!needs_patching());
     }
 
     #[test]
@@ -89,18 +87,18 @@ mod tests {
             patch_argument("core.editor=C:\\one\\Fork.RI.exe".to_owned()),
             format!("core.editor={}", fork_ri_script_path)
         );
-        assert!(env::vars()
-            .position(|var| "FORK_RI_EXE_PATH" == var.0 && "C:\\one\\Fork.RI.exe" == var.1)
-            .is_some());
+        assert!(
+            env::vars().any(|var| "FORK_RI_EXE_PATH" == var.0 && "C:\\one\\Fork.RI.exe" == var.1)
+        );
         env::remove_var("FORK_RI_EXE_PATH");
 
         assert_eq!(
             patch_argument("sequence.editor=C:\\two\\Fork.RI.exe".to_owned()),
             format!("sequence.editor={}", fork_ri_script_path)
         );
-        assert!(env::vars()
-            .position(|var| "FORK_RI_EXE_PATH" == var.0 && "C:\\two\\Fork.RI.exe" == var.1)
-            .is_some());
+        assert!(
+            env::vars().any(|var| "FORK_RI_EXE_PATH" == var.0 && "C:\\two\\Fork.RI.exe" == var.1)
+        );
         env::remove_var("FORK_RI_EXE_PATH");
     }
 }

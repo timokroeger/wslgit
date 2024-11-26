@@ -24,7 +24,7 @@ mod integration {
         // https://github.com/andy-5/wslgit/issues/54
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["config", "--get-regex", "user.(name|email)"])
+            .args(["config", "--get-regex", "user.(name|email)"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -36,7 +36,7 @@ mod integration {
     fn quote_characters_in_argument() {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--pretty=format:\"(X|Y)\""])
+            .args(["log", "-n1", "--pretty=format:\"(X|Y)\""])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -47,7 +47,7 @@ mod integration {
     fn quote_characters_and_spaces() {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--pretty=format:\"( X | Y )\""])
+            .args(["log", "-n1", "--pretty=format:\"( X | Y )\""])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -58,7 +58,7 @@ mod integration {
     fn argument_with_newline() {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--pretty=format:ab\ncd"])
+            .args(["log", "-n1", "--pretty=format:ab\ncd"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -70,7 +70,7 @@ mod integration {
         // This is really stupid, hopefully first line of Cargo.toml won't change.
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "-L 1,1:Cargo.toml"])
+            .args(["log", "-n1", "-L 1,1:Cargo.toml"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -84,7 +84,7 @@ mod integration {
     fn long_argument_with_invalid_characters_and_spaces() {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--pretty=format:<!--RevisionMessageEnd-->"])
+            .args(["log", "-n1", "--pretty=format:<!--RevisionMessageEnd-->"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -92,7 +92,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--pretty=format:a ( b | c )"])
+            .args(["log", "-n1", "--pretty=format:a ( b | c )"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -100,7 +100,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&[
+            .args([
                 "for-each-ref",
                 "refs/tags",
                 "--format=%(refname) %(objectname)",
@@ -120,7 +120,7 @@ mod integration {
     fn long_argument_with_invalid_characters_no_spaces() {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--pretty=format:a(b|c)"])
+            .args(["log", "-n1", "--pretty=format:a(b|c)"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -128,7 +128,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&[
+            .args([
                 "for-each-ref",
                 "refs/tags",
                 "--format=%(refname)%(objectname)",
@@ -149,7 +149,7 @@ mod integration {
         // https://github.com/andy-5/wslgit/issues/46
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&[
+            .args([
                 "log",
                 "-n1",
                 "--format=%x3c%x2ff%x3e%n%x3cr%x3e 01234%n%x3ca%x3e abcd",
@@ -174,7 +174,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--oneline", "--", src_main_rel])
+            .args(["log", "-n1", "--oneline", "--", src_main_rel])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -182,7 +182,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "--oneline", "--", src_main_abs])
+            .args(["log", "-n1", "--oneline", "--", src_main_abs])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -190,7 +190,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["config", "--get-regexp", "^remote\\..*"])
+            .args(["config", "--get-regexp", "^remote\\..*"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -198,7 +198,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "-L", format!("1,1:{}", src_main_rel).as_str()])
+            .args(["log", "-n1", "-L", format!("1,1:{}", src_main_rel).as_str()])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -209,7 +209,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-n1", "-L", format!("1,1:{}", src_main_abs).as_str()])
+            .args(["log", "-n1", "-L", format!("1,1:{}", src_main_abs).as_str()])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -220,7 +220,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-L", format!(":main:{}", src_main_rel).as_str()])
+            .args(["log", "-L", format!(":main:{}", src_main_rel).as_str()])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -231,7 +231,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["log", "-L", format!(":main:{}", src_main_abs).as_str()])
+            .args(["log", "-L", format!(":main:{}", src_main_abs).as_str()])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -254,7 +254,7 @@ mod integration {
 
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
-            .args(&["rev-parse", "--show-toplevel"])
+            .args(["rev-parse", "--show-toplevel"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .assert()
             .success()
@@ -266,7 +266,7 @@ mod integration {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
             // Use pretty format to call 'env'
-            .args(&["log", "-1", "--pretty=format:$(env)"])
+            .args(["log", "-1", "--pretty=format:$(env)"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .env("WSLENV", "")
             .assert()
@@ -277,7 +277,7 @@ mod integration {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
             // Use pretty format to call 'env'
-            .args(&["log", "-1", "--pretty=format:$(env)"])
+            .args(["log", "-1", "--pretty=format:$(env)"])
             .env("WSLGIT_USE_INTERACTIVE_SHELL", "false")
             .env("WSLENV", "hello")
             .assert()
@@ -291,7 +291,7 @@ mod integration {
         Command::cargo_bin(env!("CARGO_PKG_NAME"))
             .unwrap()
             // Use pretty format to call 'printenv SHELL'
-            .args(&["log", "-1", "--pretty=format:$(printenv SHELL)"])
+            .args(["log", "-1", "--pretty=format:$(printenv SHELL)"])
             .assert()
             .success()
             .stdout(predicate::str::contains("/bin/bash"));
