@@ -1,6 +1,8 @@
 use std::env;
 
-use wsl;
+use lazy_static::lazy_static;
+
+use crate::wsl;
 
 /// Returns `true` if the process was invoked by `Fork.exe`.
 pub fn needs_patching() -> bool {

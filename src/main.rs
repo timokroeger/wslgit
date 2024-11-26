@@ -5,9 +5,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
-#[macro_use]
-extern crate lazy_static;
-extern crate regex;
+use lazy_static::lazy_static;
 use regex::bytes::Regex;
 
 mod fork;
