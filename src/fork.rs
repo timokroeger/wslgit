@@ -1,4 +1,5 @@
 use std::env;
+use std::sync::LazyLock;
 
 use wsl;
 
@@ -15,13 +16,11 @@ pub fn needs_patching() -> bool {
 /// The `Fork.RI` script is executed in WSL and will call `Fork.RI.exe` with
 /// the path to `git-rebase-todo` converted to a Windows-path.
 pub fn patch_argument(arg: String) -> String {
-    lazy_static! {
-        // "xxx.editor=xxx\Fork.RI.exe"
-        static ref FORK_RI_EXE_PATH_EX: regex::Regex = regex::Regex::new(
-            r"(?P<prefix>\.editor=)(?P<fork_ri_exe_path>.*Fork\.RI\.exe)"
-        )
-        .expect("Failed to compile FORK_RI_EXE_PATH_EX regex");
-    }
+    // "xxx.editor=xxx\Fork.RI.exe"
+    static FORK_RI_EXE_PATH_EX: LazyLock<regex::Regex> = LazyLock::new(|| {
+        regex::Regex::new(r"(?P<prefix>\.editor=)(?P<fork_ri_exe_path>.*Fork\.RI\.exe)")
+            .expect("Failed to compile FORK_RI_EXE_PATH_EX regex")
+    });
 
     match FORK_RI_EXE_PATH_EX.captures(arg.as_str()) {
         Some(caps) => {
