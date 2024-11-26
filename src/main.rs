@@ -183,9 +183,7 @@ fn format_argument(arg: String) -> String {
         arg
     } else {
         let mut arg = arg;
-        if fork::needs_patching() {
-            arg = fork::patch_argument(arg);
-        }
+        arg = fork::patch_argument(arg);
         arg = translate_path_to_unix(arg);
         arg = escape_characters(arg);
         arg = quote_argument(arg);

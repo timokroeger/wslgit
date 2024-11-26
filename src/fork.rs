@@ -5,11 +5,6 @@ use regex::Regex;
 
 use crate::wsl;
 
-/// Returns `true` if the process was invoked by `Fork.exe`.
-pub fn needs_patching() -> bool {
-    env::vars().any(|var| "FORK_PROCESS_ID" == var.0)
-}
-
 /// Patches the argument for Fork's interactive-rebase GUI.
 ///
 /// If the argument is an editor and the editor is `Fork.RI.exe` then replace the
@@ -18,6 +13,11 @@ pub fn needs_patching() -> bool {
 /// The `Fork.RI` script is executed in WSL and will call `Fork.RI.exe` with
 /// the path to `git-rebase-todo` converted to a Windows-path.
 pub fn patch_argument(arg: String) -> String {
+    // Early return if the process was not invoked by `Fork.exe`.
+    if env::var("FORK_PROCESS_ID").is_err() {
+        return arg;
+    }
+
     // "xxx.editor=xxx\Fork.RI.exe"
     static FORK_RI_EXE_PATH_EX: LazyLock<Regex> = LazyLock::new(|| {
         Regex::new(r"(?P<prefix>\.editor=)(?P<fork_ri_exe_path>.*Fork\.RI\.exe)")
@@ -54,15 +54,6 @@ pub fn patch_argument(arg: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn invoked_by_fork() {
-        env::set_var("FORK_PROCESS_ID", "5");
-        assert!(needs_patching());
-
-        env::remove_var("FORK_PROCESS_ID");
-        assert!(!needs_patching());
-    }
 
     #[test]
     fn patch_argument_for_fork() {
