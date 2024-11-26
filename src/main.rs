@@ -4,8 +4,8 @@ use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::LazyLock;
 
-use lazy_static::lazy_static;
 use regex::bytes::Regex;
 
 mod fork;
@@ -25,25 +25,24 @@ fn translate_path_to_unix(argument: String) -> String {
     // 2. Begin with <drive-letter>:\, <drive-letter>:/, \\ or //.
     // 3. Consist of 0 or more path components that does not contain the characters <>:|?'"\/ or newline,
     //    and are delimited by \ or /.
-    lazy_static! {
-        static ref ABS_WINPATH_RE: Regex = Regex::new(
+    static ABS_WINPATH_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
             r#"(?-u)(?P<pre>^|[[:space:]]|:|=)(?P<path>([A-Za-z]:[\\/]|\\\\|//)([^<>:|?'"\\/\n]+[\\/]?)*)"#
         )
-        .expect("Failed to compile ABS_WINPATH_RE regex.");
-    }
+        .expect("Failed to compile ABS_WINPATH_RE regex.")
+    });
 
-    lazy_static! {
-        static ref FILE_ABS_WINPATH_RE: Regex = Regex::new(
-            r#"(?-u)(?P<pre>^file://)(?P<path>([A-Za-z]:[\\/]|\\\\|//)([^<>:|?'"\\/\n]+[\\/]?)*)"#
+    static FILE_ABS_WINPATH_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
+            r#"(?-u)(?P<pre>^file://)(?P<path>([A-Za-z]:[\\/]|\\\\|//)([^<>:|?'"\\/\n]+[\\/]?)*)"#,
         )
-        .expect("Failed to compile FILE_ABS_WINPATH_RE regex.");
-    }
+        .expect("Failed to compile FILE_ABS_WINPATH_RE regex.")
+    });
 
-    lazy_static! {
-        static ref TRANSPORT_PROTOCOL_RE: Regex =
-            Regex::new(r#"(?-u)^(ssh|git|https?|ftps?|file)://"#)
-                .expect("Failed to compile TRANSPORT_PROTOCOL_RE regex.");
-    }
+    static TRANSPORT_PROTOCOL_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r#"(?-u)^(ssh|git|https?|ftps?|file)://"#)
+            .expect("Failed to compile TRANSPORT_PROTOCOL_RE regex.")
+    });
 
     let has_file_prefix = argument.starts_with(b"file://");
     let has_transport_protocol_prefix = TRANSPORT_PROTOCOL_RE.is_match(argument);
@@ -65,12 +64,12 @@ fn translate_path_to_unix(argument: String) -> String {
     // 2. Begin with a string of valid characters (except \)...
     // 3. Followed by one \
     // 4. And then any number of valid characters (including \).
-    lazy_static! {
-        static ref REL_WINPATH_RE: Regex = Regex::new(
+    static REL_WINPATH_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
             r#"(?-u)^(?P<before>[^\\]+([[:space:]]|:|=))?(?P<path>([^<>:|?'"\n\\]+)\\([^<>:|?'"\n]*))(?P<after>.*)"#
         )
-        .expect("Failed to compile REL_WINPATH_RE regex.");
-    }
+        .expect("Failed to compile REL_WINPATH_RE regex.")
+    });
 
     if REL_WINPATH_RE.is_match(&argument) {
         let caps = REL_WINPATH_RE.captures(&argument).unwrap();
@@ -112,11 +111,10 @@ fn translate_path_to_win(line: &[u8]) -> Vec<u8> {
     // 3. Not contain the characters: <>:|?'* or newline.
     // Note that when an absolute path is found then the rest of the line is passed to wslpath as argument!
     // The only exception to this is lines ending in ` (fetch)` or ` (push)`, as in the output of `git remote -v`.
-    lazy_static! {
-        static ref WSLPATH_RE: Regex =
-            Regex::new(r"(?m)(?P<pre>^|[[:space:]])(?P<path>/([^<>:|?'*\n]*/?)*)")
-                .expect("Failed to compile WSLPATH_RE regex");
-    }
+    static WSLPATH_RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(r"(?m)(?P<pre>^|[[:space:]])(?P<path>/([^<>:|?'*\n]*/?)*)")
+            .expect("Failed to compile WSLPATH_RE regex")
+    });
 
     if WSLPATH_RE.is_match(line) {
         // Use wslpath to convert the path to a windows path.
@@ -126,11 +124,11 @@ fn translate_path_to_win(line: &[u8]) -> Vec<u8> {
 
         // Fixup output of `git remote -v`, i.e. lines ending in
         // ` (fetch)` or ` (push)` - move remote types outside the wslpath call.
-        lazy_static! {
-            static ref REMOTE_FIX_RE: Regex =
-                Regex::new(r"(?m)\s(?P<type>(\(fetch\))|(\(push\)))'\)")
-                    .expect("Failed to compile REMOTE_FIX_RE regex");
-        }
+
+        static REMOTE_FIX_RE: LazyLock<Regex> = LazyLock::new(|| {
+            Regex::new(r"(?m)\s(?P<type>(\(fetch\))|(\(push\)))'\)")
+                .expect("Failed to compile REMOTE_FIX_RE regex")
+        });
         let line = REMOTE_FIX_RE
             .replace_all(&line, &b"') ${type}"[..])
             .into_owned();
@@ -218,12 +216,11 @@ fn use_interactive_shell() -> bool {
     // check for advanced usage indicated by BASH_ENV and WSLENV contains BASH_ENV
     else if env::var("BASH_ENV").is_ok() {
         if let Ok(wslenv) = env::var("WSLENV") {
-            lazy_static! {
-                // BASH_ENV can be first or after another variable.
-                // It can be followed by flags, another variable or be last.
-                static ref BASH_ENV_RE: Regex = Regex::new(r"(?-u)(^|:)BASH_ENV(/|:|$)")
-                    .expect("Failed to compile BASH_ENV regex");
-            }
+            // BASH_ENV can be first or after another variable.
+            // It can be followed by flags, another variable or be last.
+            static BASH_ENV_RE: LazyLock<Regex> = LazyLock::new(|| {
+                Regex::new(r"(?-u)(^|:)BASH_ENV(/|:|$)").expect("Failed to compile BASH_ENV regex")
+            });
             if BASH_ENV_RE.is_match(wslenv.as_bytes()) {
                 return false;
             }
