@@ -14,26 +14,16 @@ pub fn share_val(key: &str, value: &str, translate_path: bool) {
         key.to_owned()
     };
 
-    let wslenv = match env::var("WSLENV") {
-        Ok(original_wslenv) => {
-            // WSLENV exists, add new variable only once
-            let re: regex::Regex =
-                regex::Regex::new(format!(r"(^|:){}(/|:|$)", wslenv_key).as_str())
-                    .expect("Failed to compile regex");
+    let original_wslenv = env::var("WSLENV").unwrap_or_default();
 
-            if original_wslenv.is_empty() {
-                wslenv_key.to_string()
-            } else if !re.is_match(original_wslenv.as_str()) {
-                format!("{}:{}", original_wslenv, wslenv_key)
-            } else {
-                // Don't add anything to WSLENV
-                original_wslenv
-            }
-        }
-        Err(_e) => {
-            // No WSLENV
-            wslenv_key.to_string()
-        }
+    // WSLENV exists, add new variable only once
+    let wslenv = if original_wslenv.is_empty() {
+        wslenv_key
+    } else if original_wslenv.split(":").any(|key| key == wslenv_key) {
+        // Don't add anything to WSLENV
+        original_wslenv
+    } else {
+        format!("{}:{}", original_wslenv, wslenv_key)
     };
 
     env::set_var("WSLENV", wslenv);
