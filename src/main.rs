@@ -302,8 +302,11 @@ fn get_wsl_dist_name(path: &str) -> Option<String> {
     let wsl_dist_name = match unc_path_without_server {
         Some(p) => {
             // the string p starts with the UNC 'share', which is the wsl dist name
-            let (dist_name, _) = p.split_once('\\').unwrap();
-            Some(dist_name.to_string())
+            if let Some((dist_name, _)) = p.split_once('\\') {
+                Some(dist_name.to_string())
+            } else {
+                Some(p.to_string())
+            }
         }
         None => {
             if let Ok(default_dist) = env::var("WSLGIT_DEFAULT_DIST") {
